@@ -1,0 +1,58 @@
+name: Flood Now Feed
+
+# Rebuilds flood_now.geojson (the map's red-pin layer) from the KCGR-RS feeds
+# and this project's Grist doc, and commits it only when something changed.
+#
+# How it is triggered:
+#  - workflow_dispatch: called every 5 minutes by cron-job.org (same method the
+#    KCGR-RS pollers use; Cloudflare's cron and GitHub's own schedule both
+#    proved unreliable for KCGR-RS in 2026). Also lets you run it by hand from
+#    the Actions tab.
+#  - schedule: a slower backup in case the outside caller stops.
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: "*/15 * * * *"
+
+permissions:
+  contents: write
+
+# Runs queue up instead of overlapping, so an older run can't overwrite a newer one.
+concurrency:
+  group: flood-now
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install requirements
+        run: pip install -r requirements.txt
+
+      - name: Build flood_now.geojson
+        env:
+          GRIST_API_KEY: ${{ secrets.GRIST_API_KEY }}
+        run: python3 flood_now.py
+
+      - name: Commit if changed
+        run: |
+          git config user.name "flood-now-bot"
+          git config user.email "flood-now-bot@users.noreply.github.com"
+          git add flood_now.geojson state/
+          if git diff --cached --quiet; then
+            echo "Nothing changed."
+            exit 0
+          fi
+          git commit -m "Update flood_now.geojson"
+          for i in 1 2 3; do
+            git pull --rebase && git push && exit 0
+            sleep 5
+          done
+          echo "Push failed after 3 tries" && exit 1
