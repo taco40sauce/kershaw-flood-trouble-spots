@@ -36,7 +36,7 @@ officials close them when threatened).
 
 | Path | What it is |
 |---|---|
-| `flood_now.py` | Builds `flood_now.geojson`, the red-pin layer |
+| `flood_now.py` | Builds `flood_now.geojson`, the red-pin layer, from SCDOT, Grist and KCGR-RS |
 | `flood_now.geojson` | The live red-pin data the map reads |
 | `.github/workflows/flood-now.yml` | Runs `flood_now.py` and commits changes |
 | `state/` | Last good pins from each source, used if a source is briefly down |
@@ -65,12 +65,23 @@ of three storm causes, using the KCGR code vocabulary:
 | OP-open | (reopened) | No, the pin drops off |
 
 Sources:
-1. **KCGR-RS automated feed** (APRS and Winlink):
-   `taco40sauce/kcgr-resource-feed`, `kcgr_resource_feed.geojson`
-2. **KCGR-RS hand-entered reports** (Grist), through the KCGR Grist worker.
-   Shown only when verified.
-3. **This project's Grist doc**, "Kershaw Flood Road Reports," for
+1. **SCDOT road conditions** (official, statewide feed refreshed every 10
+   minutes), limited to `SCDOT_COUNTIES`. Only storm damage is kept:
+   descriptions mentioning flooding, washouts, sinkholes, collapses, or trees
+   and debris. Planned work (resurfacing, replacements, repairs, inspections,
+   contractor work) is skipped so work zones stay off the map.
+2. **This project's Grist doc**, "Kershaw Flood Road Reports," for
    flood-only reports. Shown only when verified.
+3. **KCGR-RS hand-entered reports** (Grist), through the KCGR Grist worker.
+   Shown only when verified.
+4. **KCGR-RS automated feed** (APRS and Winlink):
+   `taco40sauce/kcgr-resource-feed`, `kcgr_resource_feed.geojson`
+
+KCGR road reports sent without a storm code are checked for one in their
+notes (for example "Trees down at..." becomes *trees or debris down*). If
+none is found, they appear as "cause not reported," so a missed code never
+hides a blocked road. Set `INCLUDE_ROAD_WITHOUT_CAUSE = False` in
+`flood_now.py` to hide them instead.
 
 Nothing is copied between databases. Each run mirrors what the sources say
 at that moment. Reports of the same cause within about 330 feet are merged
@@ -120,11 +131,11 @@ it often runs late. Set up a cron-job.org job like the KCGR-RS pollers use:
    center, state) and the sources at the top of `flood_now.py`.
 5. Build the `.umap` file and import it into a new uMap map.
 
-## Open decision
-Road reports with a status but no storm cause (Specifier `CL-closed` or
-`CA-caution`, or `OP-passable` with a limited status) are currently **left
-out**. Set `INCLUDE_ROAD_WITHOUT_CAUSE = True` in `flood_now.py` to show
-them as "cause not reported."
+## Checks after the next real storm
+- The SCDOT filter matches storm entries by their wording (SCDOT usually adds
+  the event name, for example "Hurricane Isaias (October 9, 2026)"). Compare
+  the map with SCDOT's own list during the next event and adjust
+  `CAUSE_PATTERNS` or `SCDOT_PLANNED_WORK` in `flood_now.py` if needed.
 
 ## Limits
 - A road with no mark is not guaranteed safe.

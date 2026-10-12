@@ -2,15 +2,17 @@
 flood_now.py — builds flood_now.geojson, the "Now: Road closed or hazard
 reported" layer of the Kershaw County Flood Trouble Spots map.
 
-It reads up to three sources, keeps only road hazards from a storm, turns
+It reads up to four sources, keeps only road hazards from a storm, turns
 the status codes into plain language, and writes one GeoJSON file that the
 uMap layer reads as Remote data.
 
 Sources (all optional; a missing or failing source is skipped):
-  1. KCGR-RS automated feed (APRS + Winlink), public GeoJSON on GitHub
-  2. KCGR-RS hand-entered reports, public GeoJSON from the Grist worker
-  3. This project's own Grist doc ("Kershaw Flood Road Reports"), read
+  1. SCDOT road conditions (official closures, statewide KML), filtered to
+     storm damage in SCDOT_COUNTIES; planned work zones are skipped
+  2. This project's own Grist doc ("Kershaw Flood Road Reports"), read
      with the Grist API
+  3. KCGR-RS hand-entered reports, public GeoJSON from the Grist worker
+  4. KCGR-RS automated feed (APRS + Winlink), public GeoJSON on GitHub
 
 Nothing is copied between databases. Each run mirrors what the sources say
 right now, so a road marked open (OP) drops off the map on the next run.
@@ -26,9 +28,11 @@ Environment variables (all optional):
   GRIST_DOC_ID    default 6gttLV3qkhtsMSpvyDJQnW
   GRIST_TABLE     default Table1
 """
+import html
 import json
 import math
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -43,6 +47,11 @@ HUB_FEED_URL = ("https://raw.githubusercontent.com/taco40sauce/kcgr-resource-fee
                 "main/kcgr_resource_feed.geojson")
 HUB_MANUAL_URL = "https://kcgr-grist-worker.kc4rc.workers.dev"
 
+# SCDOT road conditions (statewide KML, refreshed by SCDOT every 10 minutes).
+# https://www.scdot.org/travel/travel-roadconditions.aspx
+SCDOT_URL = "https://ris.scdot.org/roadconditions/"
+SCDOT_COUNTIES = {"KERSHAW"}   # add neighbors here, in capitals, e.g. "LEE"
+
 GRIST_SERVER = os.environ.get("GRIST_SERVER", "https://kc4rc.getgrist.com").rstrip("/")
 GRIST_DOC_ID = os.environ.get("GRIST_DOC_ID", "6gttLV3qkhtsMSpvyDJQnW")
 GRIST_TABLE = os.environ.get("GRIST_TABLE", "Table1")
@@ -54,9 +63,26 @@ ROAD_CAUSES = {
     "BR": "bridge or washout damage",
     "TR": "trees or debris down",
 }
-# Road reports whose Specifier gives no cause (CL-closed, CA-caution) are left
-# out unless this is True. Pending decision; see README.
-INCLUDE_ROAD_WITHOUT_CAUSE = False
+# KCGR road reports whose Specifier gives no storm cause (CL-closed, CA-caution,
+# OP-passable with a limited status): the notes are checked for a cause first;
+# if none is found they are shown as "cause not reported". Set False to hide them.
+INCLUDE_ROAD_WITHOUT_CAUSE = True
+
+# Words that identify a storm cause in free text (KCGR notes and SCDOT descriptions).
+CAUSE_PATTERNS = [
+    ("FL", re.compile(r"flood|high water|water over|water on (the )?road|under ?water|inundat|"
+                      r"standing water|ponding", re.I)),
+    ("BR", re.compile(r"wash ?out|washed out|sinkhole|undermin|collaps|"
+                      r"bridge (is )?(out|damaged|failure)|culvert (failure|failed|collaps)", re.I)),
+    ("TR", re.compile(r"\btrees?\b|debris|\blimbs?\b|downed", re.I)),
+]
+# SCDOT entries mentioning planned work are skipped, so work zones stay off the map.
+SCDOT_PLANNED_WORK = re.compile(
+    r"resurfac|replac|repair|install|construct|paving|patching|inspection|storm drain|"
+    r"water ?line|sewer|maintenance|widening|utility|striping|roundabout|rest area|shoulder work|"
+    r"shoulder closure|contractor|asphalt|operating under|stations? \d+\+\d+",
+    re.I)
+SCDOT_STATUS = {"Closed": "CL-closed", "Lane(s) blocked": "LM-limited", "Caution": "CA-caution"}
 
 STATUS_WORDS = {
     "CL": "Road closed",
@@ -67,14 +93,15 @@ STATUS_WORDS = {
 # OP-open is never shown: the road has reopened.
 
 SOURCE_LABELS = {
+    "scdot": "SCDOT road conditions",
     "flood_doc": "Flood map team report",
     "hub_manual": "KCGR team report",
     "hub_feed": "KCGR ham radio report",
 }
-SOURCE_PRIORITY = ["flood_doc", "hub_manual", "hub_feed"]  # tie-breaker for duplicates
+SOURCE_PRIORITY = ["scdot", "flood_doc", "hub_manual", "hub_feed"]  # tie-breaker for duplicates
 SEVERITY = ["CL", "LM", "CA", "UK"]  # duplicates keep the most serious status
 MERGE_RADIUS_M = 100   # same cause within ~330 ft = one pin (matches the hub)
-TIMEOUT = 30
+TIMEOUT = 60
 
 
 # --- Loading -----------------------------------------------------------------
@@ -114,7 +141,91 @@ def load_flood_doc():
     return feats
 
 
-LOADERS = {"hub_feed": load_hub_feed, "hub_manual": load_hub_manual, "flood_doc": load_flood_doc}
+def cause_from_text(text):
+    """Return the KCGR cause code (FL/BR/TR) a piece of free text points to, or None."""
+    for cause_code, pattern in CAUSE_PATTERNS:
+        if pattern.search(text or ""):
+            return cause_code
+    return None
+
+
+def _scdot_field(placemark, label):
+    m = re.search(r"<b>" + re.escape(label) + r":</b>(.*?)<br", placemark, re.S)
+    return html.unescape(re.sub(r"<[^>]+>", " ", m.group(1))).strip() if m else ""
+
+
+def parse_scdot_kml(text):
+    """Turn SCDOT's road-conditions KML into KCGR-style road reports.
+
+    The KML is read with patterns rather than an XML parser because the feed is
+    not always well-formed. One condition can span several Placemarks (road
+    segments); they are grouped and pinned at the middle of the whole stretch.
+    Only storm damage in SCDOT_COUNTIES is kept.
+    """
+    groups = {}
+    for pm in re.findall(r"<Placemark\b.*?</Placemark>", text, re.S):
+        if _scdot_field(pm, "County").upper() not in SCDOT_COUNTIES:
+            continue
+        style = (re.search(r"<styleUrl>#(.*?)</styleUrl>", pm) or [None, ""])[1]
+        if style not in SCDOT_STATUS:
+            continue
+        m = re.search(r"<b>Description:</b>(.*?)(?:<br/>GPS:|</span></p>|$)", pm, re.S)
+        desc = html.unescape(re.sub(r"<[^>]+>", " ", m.group(1))).strip() if m else ""
+        desc = re.sub(r"\s+", " ", desc)
+        if SCDOT_PLANNED_WORK.search(desc):
+            continue
+        cause_code = cause_from_text(desc)
+        if not cause_code:
+            continue
+        coords = []
+        for block in re.findall(r"<coordinates>(.*?)</coordinates>", pm, re.S):
+            for triple in block.split():
+                parts = triple.split(",")
+                if len(parts) >= 2:
+                    try:
+                        coords.append((float(parts[0]), float(parts[1])))
+                    except ValueError:
+                        pass
+        if not coords:
+            continue
+        key = re.search(r'<Placemark id="([^"]*)"', pm)
+        key = key.group(1) if key else (_scdot_field(pm, "Road Name") + desc)
+        g = groups.setdefault(key, {"pm": pm, "desc": desc, "style": style,
+                                    "cause": cause_code, "coords": []})
+        g["coords"].extend(coords)
+
+    feats = []
+    for g in groups.values():
+        pm = g["pm"]
+        lon, lat = g["coords"][len(g["coords"]) // 2]
+        road = _scdot_field(pm, "Road Name") or _scdot_field(pm, "Route")
+        span = re.search(r"<br/><br/>(From .*?)<br/>", pm, re.S)
+        location = road + (f": {html.unescape(span.group(1)).strip()}" if span else "")
+        dates = re.search(r"(\d{2}/\d{2}/\d{4})\s*-", pm)
+        detail = g["desc"].split(" . ", 1)[-1].strip()
+        feats.append({
+            "type": "Feature",
+            "geometry": {"type": "Point", "coordinates": [lon, lat]},
+            "properties": {
+                "ObjectName": "KCGR-ROAD-road/bridge",
+                "Status": SCDOT_STATUS[g["style"]],
+                "Specifier": g["cause"],
+                "Location": location,
+                "Notes": detail,
+                "DateTime": f"since {dates.group(1)}" if dates else "",
+            },
+        })
+    return feats
+
+
+def load_scdot():
+    r = requests.get(SCDOT_URL, timeout=TIMEOUT)
+    r.raise_for_status()
+    return parse_scdot_kml(r.text)
+
+
+LOADERS = {"scdot": load_scdot, "hub_feed": load_hub_feed, "hub_manual": load_hub_manual,
+           "flood_doc": load_flood_doc}
 
 
 # --- Filtering and wording ---------------------------------------------------
@@ -147,10 +258,14 @@ def to_pin(feature, source):
     cause_code = code(p.get("Specifier"))
     if status == "OP" or status not in STATUS_WORDS:
         return None
+    if cause_code not in ROAD_CAUSES:
+        # No storm code: look for one in the notes, e.g. "Trees down at..."
+        cause_code = cause_from_text(str(p.get("Notes") or p.get("Comment") or "")) or cause_code
     if cause_code in ROAD_CAUSES:
         cause = ROAD_CAUSES[cause_code]
     elif INCLUDE_ROAD_WITHOUT_CAUSE:
         cause = "cause not reported"
+        cause_code = "NONE"
     else:
         return None
     # Unconfirmed reports only appear once someone has verified them.
@@ -171,7 +286,7 @@ def to_pin(feature, source):
         lines.append(details)
     when = fmt_time(p.get("DateTime"))
     if when:
-        lines.append(f"Reported: {when}")
+        lines.append(when[0].upper() + when[1:] if when.startswith("since") else f"Reported: {when}")
     return {
         "type": "Feature",
         "geometry": {"type": "Point", "coordinates": [round(float(lon), 6), round(float(lat), 6)]},
