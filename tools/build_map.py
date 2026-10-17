@@ -146,6 +146,8 @@ description = (
     "## Could flood\n"
     "**Small orange dot:** a creek crosses the road. Zoom in to see crossings of small creeks too.\n"
     "**Small yellow dot:** the road runs beside a creek. Zoom in to see these.\n\n"
+    "**Orange dots inside a red warning area are the most dangerous.** Creek crossings "
+    "can go underwater within minutes of heavy rain.\n\n"
     "Tap any symbol for details. Reload the page for the latest reports.\n\n"
     "A road with no mark is not guaranteed safe. If water covers the road, turn around. "
     "Follow NWS Columbia and Kershaw County Emergency Management.\n\n"
