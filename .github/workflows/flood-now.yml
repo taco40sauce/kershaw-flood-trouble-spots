@@ -45,7 +45,7 @@ jobs:
         run: |
           git config user.name "flood-now-bot"
           git config user.email "flood-now-bot@users.noreply.github.com"
-          git add flood_now.geojson state/
+          git add flood_now.geojson flood_watches.geojson warning_crossings.geojson state/
           if git diff --cached --quiet; then
             echo "Nothing changed."
             exit 0

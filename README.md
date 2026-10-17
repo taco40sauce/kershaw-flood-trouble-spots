@@ -22,7 +22,9 @@ in vehicles, so the map focuses on roads.
 | Group | Layer | Symbol | Source |
 |---|---|---|---|
 | Now | Flood warnings | Red shaded area | National Weather Service, live |
+| Now | Flood watch (flooding possible) | Pale red, dashed edge | `flood_watches.geojson`, built from NWS by `flood_now.py` |
 | Now | Road closed or hazard reported | Red pin | `flood_now.geojson` in this repo, updated every few minutes |
+| Now | Creek crossing inside a flood warning | Orange pin | `warning_crossings.geojson`: named-creek crossings inside an active NWS warning |
 | Has flooded before | Flooded in the past (verified) | Blue drop | NWS Storm Events reports (`data/history.geojson`) |
 | Could flood | Creek crosses the road | Small orange dot | Census TIGER/Line roads and creeks (`data/crossings.geojson`) |
 | Could flood | Road beside a creek (zoom in) | Small yellow dot | Census TIGER/Line (`data/beside.geojson`) |
@@ -38,6 +40,8 @@ officials close them when threatened).
 |---|---|
 | `flood_now.py` | Builds `flood_now.geojson`, the red-pin layer, from SCDOT, Grist and KCGR-RS |
 | `flood_now.geojson` | The live red-pin data the map reads |
+| `flood_watches.geojson` | Active NWS flood watches for South Carolina (zone shapes filled in) |
+| `warning_crossings.geojson` | Named-creek crossings inside active NWS flood warnings |
 | `.github/workflows/flood-now.yml` | Runs `flood_now.py` and commits changes |
 | `state/` | Last good pins from each source, used if a source is briefly down |
 | `data/` | Fixed map data: crossings, roads beside creeks, flood history |
@@ -82,6 +86,19 @@ notes (for example "Trees down at..." becomes *trees or debris down*). If
 none is found, they appear as "cause not reported," so a missed code never
 hides a blocked road. Set `INCLUDE_ROAD_WITHOUT_CAUSE = False` in
 `flood_now.py` to hide them instead.
+
+**Practice reports are skipped.** A report is left off the public map when it
+carries an exercise flag (Winlink `Exercise: EXERCISE`) or when its location
+or notes contain EXERCISE, DRILL, TEST, PRACTICE or SIMULATED (for example
+Grist "TEST ITEM" rows). SCDOT entries are never treated as practice.
+
+**NWS layers.** Each run also reads active NWS alerts for South Carolina.
+Flood watches are written to `flood_watches.geojson`; watches usually cover
+whole forecast zones, so the zone shapes are fetched and filled in. Named-creek
+crossings that fall inside an active Flood Warning or Flash Flood Warning are
+written to `warning_crossings.geojson` (set `NAMED_CREEKS_ONLY = False` to
+include small creeks). If NWS can't be reached, the last files are kept minus
+anything already expired.
 
 Nothing is copied between databases. Each run mirrors what the sources say
 at that moment. Reports of the same cause within about 330 feet are merged

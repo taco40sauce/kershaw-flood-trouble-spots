@@ -34,6 +34,7 @@ import math
 import os
 import re
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 import requests
@@ -51,6 +52,18 @@ HUB_MANUAL_URL = "https://kcgr-grist-worker.kc4rc.workers.dev"
 # https://www.scdot.org/travel/travel-roadconditions.aspx
 SCDOT_URL = "https://ris.scdot.org/roadconditions/"
 SCDOT_COUNTIES = {"KERSHAW"}   # add neighbors here, in capitals, e.g. "LEE"
+
+# National Weather Service alerts (used for watches and for crossings inside a warning).
+NWS_AREA = "SC"
+NWS_ALERTS_URL = "https://api.weather.gov/alerts/active"
+NWS_HEADERS = {"User-Agent": "kershaw-flood-trouble-spots (github.com/taco40sauce/kershaw-flood-trouble-spots)",
+               "Accept": "application/geo+json"}
+WARNING_EVENTS = ("Flash Flood Warning", "Flood Warning")
+WATCH_EVENTS = ("Flood Watch", "Flash Flood Watch")
+WATCHES_OUT = HERE / "flood_watches.geojson"
+WARNING_CROSSINGS_OUT = HERE / "warning_crossings.geojson"
+CROSSINGS_FILE = HERE / "data" / "crossings.geojson"
+NAMED_CREEKS_ONLY = True   # crossings inside a warning: named creeks only (set False for all)
 
 GRIST_SERVER = os.environ.get("GRIST_SERVER", "https://kc4rc.getgrist.com").rstrip("/")
 GRIST_DOC_ID = os.environ.get("GRIST_DOC_ID", "6gttLV3qkhtsMSpvyDJQnW")
@@ -83,6 +96,13 @@ SCDOT_PLANNED_WORK = re.compile(
     r"shoulder closure|contractor|asphalt|operating under|stations? \d+\+\d+",
     re.I)
 SCDOT_STATUS = {"Closed": "CL-closed", "Lane(s) blocked": "LM-limited", "Caution": "CA-caution"}
+
+# Practice reports never appear on the public map.
+# 1) an exercise flag, if the source carries one (Winlink "Exercise:" line), or
+# 2) a marker word in the location or notes (e.g. Grist "TEST ITEM" rows).
+EXERCISE_FIELDS = ("Exercise", "IsExercise", "is_exercise", "exercise")
+EXERCISE_VALUES = {"EXERCISE", "YES", "TRUE", "DRILL", "1"}
+EXERCISE_WORDS = re.compile(r"\b(exercise|drill|test|testing|practice|simulated|simulation)\b", re.I)
 
 STATUS_WORDS = {
     "CL": "Road closed",
@@ -249,10 +269,23 @@ def fmt_time(raw):
     return s
 
 
+def is_exercise(props, source):
+    """True for a practice report. SCDOT entries are official and never treated as practice."""
+    if source == "scdot":
+        return False
+    for field in EXERCISE_FIELDS:
+        if str(props.get(field) or "").strip().upper() in EXERCISE_VALUES:
+            return True
+    text = " ".join(str(props.get(k) or "") for k in ("Location", "Notes", "Comment"))
+    return bool(EXERCISE_WORDS.search(text))
+
+
 def to_pin(feature, source):
     """Return a public pin for this report, or None if it doesn't belong on the map."""
     p = feature.get("properties", {})
     if not str(p.get("ObjectName", "")).upper().startswith("KCGR-ROAD"):
+        return None
+    if is_exercise(p, source):
         return None
     status = code(p.get("Status"))
     cause_code = code(p.get("Specifier"))
@@ -343,6 +376,126 @@ def finish(pin):
     }
 
 
+# --- NWS alerts -----------------------------------------------------------------
+def _get_json(url, **params):
+    r = requests.get(url, params=params or None, headers=NWS_HEADERS, timeout=TIMEOUT)
+    r.raise_for_status()
+    return r.json()
+
+
+def fetch_alerts(events):
+    """Active NWS alerts of these event types for NWS_AREA, each with a geometry.
+
+    Storm-based alerts (most warnings) carry their own polygon. Zone-based alerts
+    (most watches, some warnings) have none, so their forecast/county zones are
+    fetched and used as the shape."""
+    from shapely.geometry import shape, mapping
+    from shapely.ops import unary_union
+
+    data = _get_json(NWS_ALERTS_URL, area=NWS_AREA, event=",".join(events))
+    zone_cache = {}
+    alerts = []
+    for f in data.get("features", []):
+        props = f.get("properties", {})
+        geom = shape(f["geometry"]) if f.get("geometry") else None
+        if geom is None:
+            parts = []
+            for zone_url in props.get("affectedZones", []):
+                if zone_url not in zone_cache:
+                    try:
+                        z = _get_json(zone_url)
+                        zone_cache[zone_url] = shape(z["geometry"]) if z.get("geometry") else None
+                    except Exception as exc:
+                        print(f"[nws] zone {zone_url} failed: {exc}")
+                        zone_cache[zone_url] = None
+                if zone_cache[zone_url] is not None:
+                    parts.append(zone_cache[zone_url])
+            geom = unary_union(parts) if parts else None
+        if geom is None or geom.is_empty:
+            continue
+        alerts.append({
+            "geometry": geom,
+            "geojson": mapping(geom.simplify(0.002, preserve_topology=True)),
+            "event": props.get("event", ""),
+            "headline": props.get("headline") or "",
+            "expires": props.get("ends") or props.get("expires") or "",
+            "area": props.get("areaDesc", ""),
+            "instruction": (props.get("instruction") or "").strip(),
+        })
+    return alerts
+
+
+def _not_expired(feature):
+    exp = feature.get("properties", {}).get("expires", "")
+    try:
+        return datetime.fromisoformat(exp) > datetime.now(timezone.utc)
+    except ValueError:
+        return True
+
+
+def _keep_old_unexpired(path):
+    """NWS unreachable: keep the last file but drop anything already expired."""
+    if not path.exists():
+        return {"type": "FeatureCollection", "features": []}
+    old = json.loads(path.read_text())
+    old["features"] = [f for f in old.get("features", []) if _not_expired(f)]
+    return old
+
+
+def build_watches(alerts):
+    feats = []
+    for a in alerts:
+        feats.append({"type": "Feature", "geometry": a["geojson"],
+                      "properties": {"name": a["event"], "event": a["event"],
+                                     "headline": a["headline"], "expires": a["expires"],
+                                     "area": a["area"]}})
+    return {"type": "FeatureCollection", "features": feats}
+
+
+def build_warning_crossings(alerts):
+    from shapely.geometry import Point
+    from shapely.prepared import prep
+
+    crossings = json.loads(CROSSINGS_FILE.read_text())["features"]
+    if NAMED_CREEKS_ONLY:
+        crossings = [c for c in crossings if not c["properties"]["creek"].startswith("Unnamed")]
+    prepared = [(prep(a["geometry"]), a) for a in alerts]
+    feats = []
+    for c in crossings:
+        pt = Point(c["geometry"]["coordinates"])
+        for pg, a in prepared:
+            if pg.contains(pt):
+                feats.append({"type": "Feature", "geometry": c["geometry"],
+                              "properties": {"name": c["properties"]["name"],
+                                             "event": a["event"], "expires": a["expires"]}})
+                break
+    return {"type": "FeatureCollection", "features": feats}
+
+
+def write_if_changed(path, data, label):
+    text = json.dumps(data, indent=1, sort_keys=True, ensure_ascii=False) + "\n"
+    if path.exists() and path.read_text() == text:
+        print(f"{label}: no change ({len(data['features'])})")
+        return
+    path.write_text(text)
+    print(f"{label}: wrote {path.name} ({len(data['features'])})")
+
+
+def update_nws_layers():
+    try:
+        watches = fetch_alerts(WATCH_EVENTS)
+        warnings = fetch_alerts(WARNING_EVENTS)
+        print(f"[nws] {len(watches)} watches, {len(warnings)} warnings in {NWS_AREA}")
+        write_if_changed(WATCHES_OUT, build_watches(watches), "flood watches")
+        write_if_changed(WARNING_CROSSINGS_OUT, build_warning_crossings(warnings),
+                         "crossings inside a warning")
+    except Exception as exc:
+        print(f"[nws] FAILED ({exc}); keeping last files, minus anything expired")
+        write_if_changed(WATCHES_OUT, _keep_old_unexpired(WATCHES_OUT), "flood watches")
+        write_if_changed(WARNING_CROSSINGS_OUT, _keep_old_unexpired(WARNING_CROSSINGS_OUT),
+                         "crossings inside a warning")
+
+
 # --- Main ----------------------------------------------------------------------
 def pins_for(source):
     """Load one source and turn it into public pins. The pins (never the raw
@@ -383,6 +536,7 @@ def build():
 
 
 def main():
+    update_nws_layers()
     out = build()
     text = json.dumps(out, indent=1, sort_keys=True, ensure_ascii=False) + "\n"
     old = OUTPUT.read_text() if OUTPUT.exists() else ""

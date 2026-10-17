@@ -30,7 +30,10 @@ START_ZOOM = 13
 NWS_STATE = "SC"
 CREDIT = "Prototype by KC4RC / Kershaw County ARES."
 
-NOW_URL = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/flood_now.geojson"
+RAW = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main"
+NOW_URL = f"{RAW}/flood_now.geojson"
+WATCHES_URL = f"{RAW}/flood_watches.geojson"
+WARNING_CROSSINGS_URL = f"{RAW}/warning_crossings.geojson"
 NWS_ALERTS = (f"https://api.weather.gov/alerts/active?area={NWS_STATE}"
               "&event=Flash%20Flood%20Warning,Flood%20Warning")
 
@@ -60,6 +63,22 @@ layers = [
         "type": "FeatureCollection", "features": [],
         "properties": {
             **COMMON,
+            "name": "Now: Flood watch (flooding possible)",
+            "description": "Areas under a National Weather Service Flood Watch or Flash Flood Watch: "
+                           "flooding is possible, so be ready. Blank when no watch is in effect. "
+                           "Updated every few minutes from NWS.",
+            "color": RED, "fillOpacity": 0.07, "weight": 1, "dashArray": "6,6", "opacity": 0.6,
+            "popupShape": "Panel",
+            "popupContentTemplate": "# {event}\n{headline}\n\nUntil: {expires}\n\nFlooding is "
+                                    "possible. Check this map again before you drive.",
+            "remoteData": {"url": WATCHES_URL, "format": "geojson", "dynamic": False,
+                           "licence": "NOAA / National Weather Service (public domain)"},
+        },
+    },
+    {
+        "type": "FeatureCollection", "features": [],
+        "properties": {
+            **COMMON,
             "name": "Now: Flood warnings (live from NWS)",
             "description": "Flash Flood and Flood Warning areas from the National Weather Service. "
                            "Blank when no warning is in effect. Flood watches cover whole "
@@ -83,6 +102,20 @@ layers = [
             "color": RED, "iconClass": "Default",
             "popupContentTemplate": "# {name}\n{description}\n\n" + NEVER_DRIVE,
             "remoteData": {"url": NOW_URL, "format": "geojson", "dynamic": False},
+        },
+    },
+    {
+        "type": "FeatureCollection", "features": [],
+        "properties": {
+            **COMMON,
+            "name": "Now: Creek crossing inside a flood warning",
+            "description": "Named-creek crossings inside an active National Weather Service flood "
+                           "warning. Avoid these roads. Blank when no warning is in effect.",
+            "color": ORANGE, "iconClass": "Default",
+            "popupContentTemplate": "# Creek crossing inside a flood warning\n**{name}**\n\n"
+                                    "This crossing is inside an active {event}. Water can cover "
+                                    "the road here within minutes.\n\n" + NEVER_DRIVE,
+            "remoteData": {"url": WARNING_CROSSINGS_URL, "format": "geojson", "dynamic": False},
         },
     },
     {
@@ -139,6 +172,8 @@ description = (
     "**Roads to avoid when a flood warning is in effect.**\n\n"
     "## Now\n"
     "**Red shaded area:** a flood warning is in effect.\n"
+    "**Orange pin:** a creek crossing inside the warning area. Avoid it.\n"
+    "**Pale red area with a dashed edge:** a flood watch. Flooding is possible; be ready.\n"
     "**Red pin:** road closed or unsafe right now: flooding, washout, or trees down. "
     "Empty when no event is under way.\n\n"
     "## Has flooded before\n"

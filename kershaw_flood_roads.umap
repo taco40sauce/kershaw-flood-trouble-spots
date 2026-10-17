@@ -9,7 +9,7 @@
  },
  "properties": {
   "name": "Kershaw County Flood Trouble Spots",
-  "description": "**Roads to avoid when a flood warning is in effect.**\n\n## Now\n**Red shaded area:** a flood warning is in effect.\n**Red pin:** road closed or unsafe right now: flooding, washout, or trees down. Empty when no event is under way.\n\n## Has flooded before\n**Blue drop:** a place that has flooded in the past (verified).\n\n## Could flood\n**Small orange dot:** a creek crosses the road. Zoom in to see crossings of small creeks too.\n**Small yellow dot:** the road runs beside a creek. Zoom in to see these.\n\n**Orange dots inside a red warning area are the most dangerous.** Creek crossings can go underwater within minutes of heavy rain.\n\nTap any symbol for details. Reload the page for the latest reports.\n\nA road with no mark is not guaranteed safe. If water covers the road, turn around. Follow NWS Columbia and Kershaw County Emergency Management.\n\nInterstate and US highway bridges are not marked. Officials close those roads when they are threatened.\n\nUse the locate button to jump to where you are.\n\nPrototype by KC4RC / Kershaw County ARES.",
+  "description": "**Roads to avoid when a flood warning is in effect.**\n\n## Now\n**Red shaded area:** a flood warning is in effect.\n**Orange pin:** a creek crossing inside the warning area. Avoid it.\n**Pale red area with a dashed edge:** a flood watch. Flooding is possible; be ready.\n**Red pin:** road closed or unsafe right now: flooding, washout, or trees down. Empty when no event is under way.\n\n## Has flooded before\n**Blue drop:** a place that has flooded in the past (verified).\n\n## Could flood\n**Small orange dot:** a creek crosses the road. Zoom in to see crossings of small creeks too.\n**Small yellow dot:** the road runs beside a creek. Zoom in to see these.\n\n**Orange dots inside a red warning area are the most dangerous.** Creek crossings can go underwater within minutes of heavy rain.\n\nTap any symbol for details. Reload the page for the latest reports.\n\nA road with no mark is not guaranteed safe. If water covers the road, turn around. Follow NWS Columbia and Kershaw County Emergency Management.\n\nInterstate and US highway bridges are not marked. Officials close those roads when they are threatened.\n\nUse the locate button to jump to where you are.\n\nPrototype by KC4RC / Kershaw County ARES.",
   "zoom": 13,
   "onLoadPanel": "caption",
   "captionBar": true,
@@ -30,6 +30,30 @@
   }
  },
  "layers": [
+  {
+   "type": "FeatureCollection",
+   "features": [],
+   "properties": {
+    "displayOnLoad": true,
+    "browsable": true,
+    "inCaption": true,
+    "name": "Now: Flood watch (flooding possible)",
+    "description": "Areas under a National Weather Service Flood Watch or Flash Flood Watch: flooding is possible, so be ready. Blank when no watch is in effect. Updated every few minutes from NWS.",
+    "color": "#d7191c",
+    "fillOpacity": 0.07,
+    "weight": 1,
+    "dashArray": "6,6",
+    "opacity": 0.6,
+    "popupShape": "Panel",
+    "popupContentTemplate": "# {event}\n{headline}\n\nUntil: {expires}\n\nFlooding is possible. Check this map again before you drive.",
+    "remoteData": {
+     "url": "https://raw.githubusercontent.com/taco40sauce/kershaw-flood-trouble-spots/main/flood_watches.geojson",
+     "format": "geojson",
+     "dynamic": false,
+     "licence": "NOAA / National Weather Service (public domain)"
+    }
+   }
+  },
   {
    "type": "FeatureCollection",
    "features": [],
@@ -66,6 +90,25 @@
     "popupContentTemplate": "# {name}\n{description}\n\nNever drive into water over a road. Twelve inches of moving water can carry away most cars. Turn around, don't drown.",
     "remoteData": {
      "url": "https://raw.githubusercontent.com/taco40sauce/kershaw-flood-trouble-spots/main/flood_now.geojson",
+     "format": "geojson",
+     "dynamic": false
+    }
+   }
+  },
+  {
+   "type": "FeatureCollection",
+   "features": [],
+   "properties": {
+    "displayOnLoad": true,
+    "browsable": true,
+    "inCaption": true,
+    "name": "Now: Creek crossing inside a flood warning",
+    "description": "Named-creek crossings inside an active National Weather Service flood warning. Avoid these roads. Blank when no warning is in effect.",
+    "color": "#e66101",
+    "iconClass": "Default",
+    "popupContentTemplate": "# Creek crossing inside a flood warning\n**{name}**\n\nThis crossing is inside an active {event}. Water can cover the road here within minutes.\n\nNever drive into water over a road. Twelve inches of moving water can carry away most cars. Turn around, don't drown.",
+    "remoteData": {
+     "url": "https://raw.githubusercontent.com/taco40sauce/kershaw-flood-trouble-spots/main/warning_crossings.geojson",
      "format": "geojson",
      "dynamic": false
     }
