@@ -1,4 +1,21 @@
 {
- "features": [],
+ "features": [
+  {
+   "geometry": {
+    "coordinates": [
+     -80.7141,
+     34.2477
+    ],
+    "type": "Point"
+   },
+   "properties": {
+    "cause": "flooding",
+    "description": "**System CHECK, not a report.**\nSource: Flood map team report",
+    "name": "Use caution: flooding",
+    "status": "Use caution"
+   },
+   "type": "Feature"
+  }
+ ],
  "type": "FeatureCollection"
 }
