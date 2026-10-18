@@ -59,6 +59,7 @@ of three storm causes, using the KCGR code vocabulary:
 | FL-flooding | flooding |
 | BR-bridge damage | bridge or washout damage |
 | TR-trees/debris | trees or debris down |
+| PL-power lines down | power lines down |
 
 | Status | Public wording | Shown? |
 |---|---|---|
@@ -77,9 +78,14 @@ Sources:
 2. **This project's Grist doc**, "Kershaw Flood Road Reports," for
    flood-only reports. Shown only when verified.
 3. **KCGR-RS hand-entered reports** (Grist), through the KCGR Grist worker.
-   Shown only when verified.
+   **Switched off** (Oct 17, 2026).
 4. **KCGR-RS automated feed** (APRS and Winlink):
-   `taco40sauce/kcgr-resource-feed`, `kcgr_resource_feed.geojson`
+   `taco40sauce/kcgr-resource-feed`, `kcgr_resource_feed.geojson`.
+   **Switched off** (Oct 17, 2026).
+
+Sources 3 and 4 are switched off so that the flood Grist doc is the only way
+people change the flood map; whoever owns that doc controls the map. Their
+code is kept; turn either back on in `SOURCE_ENABLED` in `flood_now.py`.
 
 KCGR road reports sent without a storm code are checked for one in their
 notes (for example "Trees down at..." becomes *trees or debris down*). If

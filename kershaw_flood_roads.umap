@@ -9,7 +9,7 @@
  },
  "properties": {
   "name": "Kershaw County Flood Trouble Spots",
-  "description": "**Roads to avoid when a flood warning is in effect.**\n\n## Now\n**Red shaded area:** a flood warning is in effect.\n**Orange pin:** a creek crossing inside the warning area. Avoid it.\n**Pale red area with a dashed edge:** a flood watch. Flooding is possible; be ready.\n**Red pin:** road closed or unsafe right now: flooding, washout, or trees down. Empty when no event is under way.\n\n## Has flooded before\n**Blue drop:** a place that has flooded in the past (verified).\n\n## Could flood\n**Small orange dot:** a creek crosses the road. Zoom in to see crossings of small creeks too.\n**Small yellow dot:** the road runs beside a creek. Zoom in to see these.\n\n**Greyed-out layers:** layers marked \"(zoom in)\" only show when you are zoomed in close. Zoom in (tap + or spread two fingers) until they turn dark. A layer turned off with its eye icon also looks grey; tap the eye to turn it back on.\n\n**Orange dots inside a red warning area are the most dangerous.** Creek crossings can go underwater within minutes of heavy rain.\n\nTap any symbol for details. Reload the page for the latest reports.\n\nA road with no mark is not guaranteed safe. If water covers the road, turn around. Follow NWS Columbia and Kershaw County Emergency Management.\n\nInterstate and US highway bridges are not marked. Officials close those roads when they are threatened.\n\nUse the locate button to jump to where you are.\n\nPrototype by KC4RC / Kershaw County ARES.",
+  "description": "**Roads to avoid when a flood warning is in effect.**\n\n## Now\n**Red shaded area:** a flood warning is in effect.\n**Orange pin:** a creek crossing inside the warning area. Avoid it.\n**Pale red area with a dashed edge:** a flood watch. Flooding is possible; be ready.\n**Red pin:** road closed or unsafe right now: flooding, washout, trees down, or power lines down. Empty when no event is under way.\n\n## Has flooded before\n**Blue drop:** a place that has flooded in the past (verified).\n\n## Could flood\n**Small orange dot:** a creek crosses the road. Zoom in to see crossings of small creeks too.\n**Small yellow dot:** the road runs beside a creek. Zoom in to see these.\n\n**Greyed-out layers:** layers marked \"(zoom in)\" only show when you are zoomed in close. Zoom in (tap + or spread two fingers) until they turn dark. A layer turned off with its eye icon also looks grey; tap the eye to turn it back on.\n\n**Orange dots inside a red warning area are the most dangerous.** Creek crossings can go underwater within minutes of heavy rain.\n\nTap any symbol for details. Reload the page for the latest reports.\n\nA road with no mark is not guaranteed safe. If water covers the road, turn around. Follow NWS Columbia and Kershaw County Emergency Management.\n\nInterstate and US highway bridges are not marked. Officials close those roads when they are threatened.\n\nUse the locate button to jump to where you are.\n\nPrototype by KC4RC / Kershaw County ARES.",
   "zoom": 13,
   "onLoadPanel": "caption",
   "captionBar": true,
@@ -74,157 +74,6 @@
      "dynamic": false,
      "licence": "NOAA / National Weather Service (public domain)"
     }
-   }
-  },
-  {
-   "type": "FeatureCollection",
-   "features": [],
-   "properties": {
-    "displayOnLoad": true,
-    "browsable": true,
-    "inCaption": true,
-    "name": "Now: Road closed or hazard reported",
-    "description": "Roads reported closed or unsafe during an event because of flooding, bridge or washout damage, or trees and debris. Reports come from KCGR ham radio operators and verified team entries. Empty when no event is under way. Reload the page for the latest reports.",
-    "color": "#d7191c",
-    "iconClass": "Default",
-    "popupContentTemplate": "# {name}\n{description}\n\nNever drive into water over a road. Twelve inches of moving water can carry away most cars. Turn around, don't drown.",
-    "remoteData": {
-     "url": "https://raw.githubusercontent.com/taco40sauce/kershaw-flood-trouble-spots/main/flood_now.geojson",
-     "format": "geojson",
-     "dynamic": false
-    }
-   }
-  },
-  {
-   "type": "FeatureCollection",
-   "features": [],
-   "properties": {
-    "displayOnLoad": true,
-    "browsable": true,
-    "inCaption": true,
-    "name": "Now: Creek crossing inside a flood warning",
-    "description": "Named-creek crossings inside an active National Weather Service flood warning. Avoid these roads. Blank when no warning is in effect.",
-    "color": "#e66101",
-    "iconClass": "Default",
-    "popupContentTemplate": "# Creek crossing inside a flood warning\n**{name}**\n\nThis crossing is inside an active {event}. Water can cover the road here within minutes.\n\nNever drive into water over a road. Twelve inches of moving water can carry away most cars. Turn around, don't drown.",
-    "remoteData": {
-     "url": "https://raw.githubusercontent.com/taco40sauce/kershaw-flood-trouble-spots/main/warning_crossings.geojson",
-     "format": "geojson",
-     "dynamic": false
-    }
-   }
-  },
-  {
-   "type": "FeatureCollection",
-   "features": [
-    {
-     "type": "Feature",
-     "geometry": {
-      "type": "Point",
-      "coordinates": [
-       -80.714092,
-       34.247684
-      ]
-     },
-     "properties": {
-      "name": "Pine Grove Rd at Twenty Five Mile Creek",
-      "description": "**Oct 4, 2015: deadly.** Floodwater swept a car off Pine Grove Road at Twenty Five Mile Creek. The road was barricaded, and the car is believed to have gone around the barricade. It stalled and was carried down the creek. The driver drowned.\n\nLocation: exact (creek crossing).\nSource: NWS Storm Events, law enforcement report."
-     }
-    },
-    {
-     "type": "Feature",
-     "geometry": {
-      "type": "Point",
-      "coordinates": [
-       -80.847437,
-       34.215301
-      ]
-     },
-     "properties": {
-      "name": "Tookie Doo Ln at Flat Branch",
-      "description": "**Aug 3, 2024.** Flat Branch flowed over Tookie Doo Lane near Elgin and made the road impassable.\n\nLocation: exact (creek crossing).\nSource: NWS Storm Events, public report."
-     }
-    },
-    {
-     "type": "Feature",
-     "geometry": {
-      "type": "Point",
-      "coordinates": [
-       -80.527087,
-       34.544357
-      ]
-     },
-     "properties": {
-      "name": "Neds Creek Rd (SC 413) at Neds Creek",
-      "description": "**Aug 26, 2008 (remnants of Tropical Storm Fay).** Neds Creek flooded SC 413 near Bethune.\n\nLocation: exact (creek crossing).\nSource: NWS Storm Events, SC Department of Highways report."
-     }
-    },
-    {
-     "type": "Feature",
-     "geometry": {
-      "type": "Point",
-      "coordinates": [
-       -80.417524,
-       34.540689
-      ]
-     },
-     "properties": {
-      "name": "Newman Rd (SC 588) near Buffalo Creek",
-      "description": "**Aug 26, 2008 (remnants of Tropical Storm Fay).** Buffalo Creek flooded SC 588 near Bethune.\n\nLocation: approximate. Pinned where SC 588 crosses Little Buffalo Creek, the closest match to the report.\nSource: NWS Storm Events, SC Department of Highways report."
-     }
-    },
-    {
-     "type": "Feature",
-     "geometry": {
-      "type": "Point",
-      "coordinates": [
-       -80.6067,
-       34.2482
-      ]
-     },
-     "properties": {
-      "name": "Downtown Camden",
-      "description": "**Aug 5, 2006.** Several cars were stranded in 1 to 2 feet of water on Laurens, Rutledge and Lamden roads.\n\n**Sep 21, 1999.** Rapid flooding in low-lying parts of Camden, with water about 2 feet deep downtown.\n\nLocation: general area (between Laurens and Rutledge streets).\nSource: NWS Storm Events, emergency management and sheriff reports."
-     }
-    },
-    {
-     "type": "Feature",
-     "geometry": {
-      "type": "Point",
-      "coordinates": [
-       -80.6111,
-       34.2889
-      ]
-     },
-     "properties": {
-      "name": "Kirkland Street area",
-      "description": "**Jun 24, 2012.** Heavy rain caused flooding and a sinkhole in the Kirkland Street area.\n\nLocation: approximate.\nSource: NWS Storm Events, law enforcement report."
-     }
-    },
-    {
-     "type": "Feature",
-     "geometry": {
-      "type": "Point",
-      "coordinates": [
-       -80.6351,
-       34.2535
-      ]
-     },
-     "properties": {
-      "name": "Dekalb St Walmart parking lot",
-      "description": "**Jun 24, 2012.** Cars were flooded out in the Walmart parking lot on Dekalb Street.\n\nLocation: approximate.\nSource: NWS Storm Events, sheriff report."
-     }
-    }
-   ],
-   "properties": {
-    "displayOnLoad": true,
-    "browsable": true,
-    "inCaption": true,
-    "name": "Before: Flooded in the past (verified)",
-    "description": "Places that have actually flooded, from NWS Storm Events reports for Kershaw County, 1996 to mid-2026. Six more reports covered broad areas (eastern county, Elgin and Lugoff low areas, southwest county roads, east of Camden) and are not pinned. Add new pins with the date and source.",
-    "color": "#2c7bb6",
-    "iconClass": "Drop",
-    "popupContentTemplate": "# {name}\n{description}"
    }
   },
   {
@@ -9647,6 +9496,157 @@
     "iconClass": "Circle",
     "fromZoom": 13,
     "popupContentTemplate": "# Road beside a creek\n**{name}**\n\nThis road is low and close to a creek. It can flood in heavy rain.\n\nNever drive into water over a road. Twelve inches of moving water can carry away most cars. Turn around, don't drown."
+   }
+  },
+  {
+   "type": "FeatureCollection",
+   "features": [
+    {
+     "type": "Feature",
+     "geometry": {
+      "type": "Point",
+      "coordinates": [
+       -80.714092,
+       34.247684
+      ]
+     },
+     "properties": {
+      "name": "Pine Grove Rd at Twenty Five Mile Creek",
+      "description": "**Oct 4, 2015: deadly.** Floodwater swept a car off Pine Grove Road at Twenty Five Mile Creek. The road was barricaded, and the car is believed to have gone around the barricade. It stalled and was carried down the creek. The driver drowned.\n\nLocation: exact (creek crossing).\nSource: NWS Storm Events, law enforcement report."
+     }
+    },
+    {
+     "type": "Feature",
+     "geometry": {
+      "type": "Point",
+      "coordinates": [
+       -80.847437,
+       34.215301
+      ]
+     },
+     "properties": {
+      "name": "Tookie Doo Ln at Flat Branch",
+      "description": "**Aug 3, 2024.** Flat Branch flowed over Tookie Doo Lane near Elgin and made the road impassable.\n\nLocation: exact (creek crossing).\nSource: NWS Storm Events, public report."
+     }
+    },
+    {
+     "type": "Feature",
+     "geometry": {
+      "type": "Point",
+      "coordinates": [
+       -80.527087,
+       34.544357
+      ]
+     },
+     "properties": {
+      "name": "Neds Creek Rd (SC 413) at Neds Creek",
+      "description": "**Aug 26, 2008 (remnants of Tropical Storm Fay).** Neds Creek flooded SC 413 near Bethune.\n\nLocation: exact (creek crossing).\nSource: NWS Storm Events, SC Department of Highways report."
+     }
+    },
+    {
+     "type": "Feature",
+     "geometry": {
+      "type": "Point",
+      "coordinates": [
+       -80.417524,
+       34.540689
+      ]
+     },
+     "properties": {
+      "name": "Newman Rd (SC 588) near Buffalo Creek",
+      "description": "**Aug 26, 2008 (remnants of Tropical Storm Fay).** Buffalo Creek flooded SC 588 near Bethune.\n\nLocation: approximate. Pinned where SC 588 crosses Little Buffalo Creek, the closest match to the report.\nSource: NWS Storm Events, SC Department of Highways report."
+     }
+    },
+    {
+     "type": "Feature",
+     "geometry": {
+      "type": "Point",
+      "coordinates": [
+       -80.6067,
+       34.2482
+      ]
+     },
+     "properties": {
+      "name": "Downtown Camden",
+      "description": "**Aug 5, 2006.** Several cars were stranded in 1 to 2 feet of water on Laurens, Rutledge and Lamden roads.\n\n**Sep 21, 1999.** Rapid flooding in low-lying parts of Camden, with water about 2 feet deep downtown.\n\nLocation: general area (between Laurens and Rutledge streets).\nSource: NWS Storm Events, emergency management and sheriff reports."
+     }
+    },
+    {
+     "type": "Feature",
+     "geometry": {
+      "type": "Point",
+      "coordinates": [
+       -80.6111,
+       34.2889
+      ]
+     },
+     "properties": {
+      "name": "Kirkland Street area",
+      "description": "**Jun 24, 2012.** Heavy rain caused flooding and a sinkhole in the Kirkland Street area.\n\nLocation: approximate.\nSource: NWS Storm Events, law enforcement report."
+     }
+    },
+    {
+     "type": "Feature",
+     "geometry": {
+      "type": "Point",
+      "coordinates": [
+       -80.6351,
+       34.2535
+      ]
+     },
+     "properties": {
+      "name": "Dekalb St Walmart parking lot",
+      "description": "**Jun 24, 2012.** Cars were flooded out in the Walmart parking lot on Dekalb Street.\n\nLocation: approximate.\nSource: NWS Storm Events, sheriff report."
+     }
+    }
+   ],
+   "properties": {
+    "displayOnLoad": true,
+    "browsable": true,
+    "inCaption": true,
+    "name": "Before: Flooded in the past (verified)",
+    "description": "Places that have actually flooded, from NWS Storm Events reports for Kershaw County, 1996 to mid-2026. Six more reports covered broad areas (eastern county, Elgin and Lugoff low areas, southwest county roads, east of Camden) and are not pinned. Add new pins with the date and source.",
+    "color": "#2c7bb6",
+    "iconClass": "Drop",
+    "popupContentTemplate": "# {name}\n{description}"
+   }
+  },
+  {
+   "type": "FeatureCollection",
+   "features": [],
+   "properties": {
+    "displayOnLoad": true,
+    "browsable": true,
+    "inCaption": true,
+    "name": "Now: Road closed or hazard reported",
+    "description": "Roads reported closed or unsafe during an event because of flooding, bridge or washout damage, trees and debris, or downed power lines. Reports come from SCDOT and the flood map team. Empty when no event is under way. Reload the page for the latest reports.",
+    "color": "#d7191c",
+    "iconClass": "Default",
+    "popupContentTemplate": "# {name}\n{description}\n\nNever drive into water over a road. Twelve inches of moving water can carry away most cars. Turn around, don't drown.",
+    "remoteData": {
+     "url": "https://raw.githubusercontent.com/taco40sauce/kershaw-flood-trouble-spots/main/flood_now.geojson",
+     "format": "geojson",
+     "dynamic": false
+    }
+   }
+  },
+  {
+   "type": "FeatureCollection",
+   "features": [],
+   "properties": {
+    "displayOnLoad": true,
+    "browsable": true,
+    "inCaption": true,
+    "name": "Now: Creek crossing inside a flood warning",
+    "description": "Named-creek crossings inside an active National Weather Service flood warning. Avoid these roads. Blank when no warning is in effect.",
+    "color": "#e66101",
+    "iconClass": "Default",
+    "popupContentTemplate": "# Creek crossing inside a flood warning\n**{name}**\n\nThis crossing is inside an active {event}. Water can cover the road here within minutes.\n\nNever drive into water over a road. Twelve inches of moving water can carry away most cars. Turn around, don't drown.",
+    "remoteData": {
+     "url": "https://raw.githubusercontent.com/taco40sauce/kershaw-flood-trouble-spots/main/warning_crossings.geojson",
+     "format": "geojson",
+     "dynamic": false
+    }
    }
   }
  ]

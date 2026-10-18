@@ -6,13 +6,15 @@ It reads up to four sources, keeps only road hazards from a storm, turns
 the status codes into plain language, and writes one GeoJSON file that the
 uMap layer reads as Remote data.
 
-Sources (all optional; a missing or failing source is skipped):
+Sources (a missing or failing source is skipped):
   1. SCDOT road conditions (official closures, statewide KML), filtered to
-     storm damage in SCDOT_COUNTIES; planned work zones are skipped
+     storm damage in SCDOT_COUNTIES; planned work zones are skipped   [ON]
   2. This project's own Grist doc ("Kershaw Flood Road Reports"), read
-     with the Grist API
-  3. KCGR-RS hand-entered reports, public GeoJSON from the Grist worker
-  4. KCGR-RS automated feed (APRS + Winlink), public GeoJSON on GitHub
+     with the Grist API. The only way people change the flood map.     [ON]
+  3. KCGR-RS hand-entered reports, public GeoJSON from the Grist worker [OFF]
+  4. KCGR-RS automated feed (APRS + Winlink), public GeoJSON on GitHub  [OFF]
+  On/off is set in SOURCE_ENABLED. Sources 3 and 4 were switched off on
+  Oct 17, 2026; their code is kept so they can be switched back on.
 
 Nothing is copied between databases. Each run mirrors what the sources say
 right now, so a road marked open (OP) drops off the map on the next run.
@@ -75,6 +77,7 @@ ROAD_CAUSES = {
     "FL": "flooding",
     "BR": "bridge or washout damage",
     "TR": "trees or debris down",
+    "PL": "power lines down",
 }
 # KCGR road reports whose Specifier gives no storm cause (CL-closed, CA-caution,
 # OP-passable with a limited status): the notes are checked for a cause first;
@@ -87,6 +90,7 @@ CAUSE_PATTERNS = [
                       r"standing water|ponding", re.I)),
     ("BR", re.compile(r"wash ?out|washed out|sinkhole|undermin|collaps|"
                       r"bridge (is )?(out|damaged|failure)|culvert (failure|failed|collaps)", re.I)),
+    ("PL", re.compile(r"power ?lines?|lines? down|wires? down|downed (power )?lines?", re.I)),
     ("TR", re.compile(r"\btrees?\b|debris|\blimbs?\b|downed", re.I)),
 ]
 # SCDOT entries mentioning planned work are skipped, so work zones stay off the map.
@@ -119,6 +123,18 @@ SOURCE_LABELS = {
     "hub_feed": "KCGR ham radio report",
 }
 SOURCE_PRIORITY = ["scdot", "flood_doc", "hub_manual", "hub_feed"]  # tie-breaker for duplicates
+
+# Which road sources feed the flood map.
+# Automatic official sources (SCDOT) and the flood Grist doc are on.
+# The KCGR hub sources (APRS/Winlink radio feed and KCGR hub Grist entries) are
+# OFF by decision on Oct 17, 2026: the flood Grist doc is the only way people
+# change the flood map. Their code is kept here; set True to switch one back on.
+SOURCE_ENABLED = {
+    "scdot": True,        # SC Dept. of Transportation road conditions (official, automatic)
+    "flood_doc": True,    # Flood Grist doc "Kershaw Flood Road Reports" (manual)
+    "hub_manual": False,  # KCGR hub Grist entries (off)
+    "hub_feed": False,    # KCGR hub APRS/Winlink feed (off)
+}
 SEVERITY = ["CL", "LM", "CA", "UK"]  # duplicates keep the most serious status
 MERGE_RADIUS_M = 100   # same cause within ~330 ft = one pin (matches the hub)
 TIMEOUT = 60
@@ -529,6 +545,9 @@ def pins_for(source):
 def build():
     pins = []
     for source in SOURCE_PRIORITY:
+        if not SOURCE_ENABLED.get(source, False):
+            print(f"[{source}] switched off (SOURCE_ENABLED)")
+            continue
         pins.extend(pins_for(source))
     features = [finish(p) for p in merge(pins)]
     features.sort(key=lambda f: (f["geometry"]["coordinates"][1], f["geometry"]["coordinates"][0]))

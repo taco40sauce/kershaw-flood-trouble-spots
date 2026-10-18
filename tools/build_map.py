@@ -96,8 +96,8 @@ layers = [
             **COMMON,
             "name": "Now: Road closed or hazard reported",
             "description": "Roads reported closed or unsafe during an event because of flooding, "
-                           "bridge or washout damage, or trees and debris. Reports come from KCGR "
-                           "ham radio operators and verified team entries. Empty when no event is "
+                           "bridge or washout damage, trees and debris, or downed power lines. "
+                           "Reports come from SCDOT and the flood map team. Empty when no event is "
                            "under way. Reload the page for the latest reports.",
             "color": RED, "iconClass": "Default",
             "popupContentTemplate": "# {name}\n{description}\n\n" + NEVER_DRIVE,
@@ -168,13 +168,28 @@ layers = [
     },
 ]
 
+# Drawing order: uMap draws later layers on top (and lists them first in its
+# layer panel). Shaded areas go at the bottom so they never block taps on the
+# dots; current reports go on top so they are never hidden by a history drop.
+DRAW_ORDER = [
+    "Now: Flood watch (flooding possible)",
+    "Now: Flood warnings (live from NWS)",
+    "Could flood: Named creek crosses the road",
+    "Could flood: Small creek crosses the road (zoom in)",
+    "Could flood: Road beside a creek (zoom in)",
+    "Before: Flooded in the past (verified)",
+    "Now: Road closed or hazard reported",
+    "Now: Creek crossing inside a flood warning",
+]
+layers.sort(key=lambda l: DRAW_ORDER.index(l["properties"]["name"]))
+
 description = (
     "**Roads to avoid when a flood warning is in effect.**\n\n"
     "## Now\n"
     "**Red shaded area:** a flood warning is in effect.\n"
     "**Orange pin:** a creek crossing inside the warning area. Avoid it.\n"
     "**Pale red area with a dashed edge:** a flood watch. Flooding is possible; be ready.\n"
-    "**Red pin:** road closed or unsafe right now: flooding, washout, or trees down. "
+    "**Red pin:** road closed or unsafe right now: flooding, washout, trees down, or power lines down. "
     "Empty when no event is under way.\n\n"
     "## Has flooded before\n"
     "**Blue drop:** a place that has flooded in the past (verified).\n\n"
