@@ -87,7 +87,7 @@ INCLUDE_ROAD_WITHOUT_CAUSE = True
 # Words that identify a storm cause in free text (KCGR notes and SCDOT descriptions).
 CAUSE_PATTERNS = [
     ("FL", re.compile(r"flood|high water|water over|water on (the )?road|under ?water|inundat|"
-                      r"standing water|ponding", re.I)),
+                      r"standing water|ponding|dam (failure|breach)", re.I)),
     ("BR", re.compile(r"wash ?out|washed out|sinkhole|undermin|collaps|"
                       r"bridge (is )?(out|damaged|failure)|culvert (failure|failed|collaps)", re.I)),
     ("PL", re.compile(r"power ?lines?|lines? down|wires? down|downed (power )?lines?", re.I)),
