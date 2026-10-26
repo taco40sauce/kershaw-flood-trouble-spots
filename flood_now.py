@@ -199,20 +199,31 @@ def parse_scdot_kml(text):
     Only storm damage in SCDOT_COUNTIES is kept.
     """
     groups = {}
-    for pm in re.findall(r"<Placemark\b.*?</Placemark>", text, re.S):
-        if _scdot_field(pm, "County").upper() not in SCDOT_COUNTIES:
+    tally = {"entries": 0, "county": 0, "status": 0, "not_planned": 0, "storm": 0}
+    for raw_pm in re.findall(r"<Placemark\b.*?</Placemark>", text, re.S):
+        tally["entries"] += 1
+        # The live feed sends the description's formatting encoded
+        # (&lt;b&gt;County:&lt;/b&gt;), confirmed Oct 25, 2026; decode it (and any
+        # CDATA wrapper) so the fields can be read. Plain text is left unchanged.
+        pm = html.unescape(raw_pm.replace("<![CDATA[", "").replace("]]>", ""))
+        county = re.sub(r"\s+COUNTY$", "", _scdot_field(pm, "County").upper()).strip()
+        if county not in SCDOT_COUNTIES:
             continue
+        tally["county"] += 1
         style = (re.search(r"<styleUrl>#(.*?)</styleUrl>", pm) or [None, ""])[1]
         if style not in SCDOT_STATUS:
             continue
+        tally["status"] += 1
         m = re.search(r"<b>Description:</b>(.*?)(?:<br/>GPS:|</span></p>|$)", pm, re.S)
         desc = html.unescape(re.sub(r"<[^>]+>", " ", m.group(1))).strip() if m else ""
         desc = re.sub(r"\s+", " ", desc)
         if SCDOT_PLANNED_WORK.search(desc):
             continue
+        tally["not_planned"] += 1
         cause_code = cause_from_text(desc)
         if not cause_code:
             continue
+        tally["storm"] += 1
         coords = []
         for block in re.findall(r"<coordinates>(.*?)</coordinates>", pm, re.S):
             for triple in block.split():
@@ -251,6 +262,9 @@ def parse_scdot_kml(text):
                 "DateTime": f"since {dates.group(1)}" if dates else "",
             },
         })
+    print(f"[scdot] read {tally['entries']} entries: {tally['county']} in "
+          f"{', '.join(sorted(SCDOT_COUNTIES)).title()}, {tally['status']} closed/blocked/caution, "
+          f"{tally['not_planned']} not planned work, {tally['storm']} storm damage")
     return feats
 
 
